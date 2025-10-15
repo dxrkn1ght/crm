@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(OPERATOR)
+  createdAt DateTime @default(now())
+
+  // 👇 User o‘qituvchi sifatida bir nechta guruhni boshqaradi
+  groupsTaught Group[] @relation("UserToGroup")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  OPERATOR
+}
+
+model Course {
+  id       String  @id @default(uuid())
+  name     String
+  duration Int
+  price    Float
+  groups   Group[]
+}
+
+model Group {
+  id          String       @id @default(uuid())
+  name        String
+  course      Course       @relation(fields: [courseId], references: [id])
+  courseId    String
+  teacher     User?        @relation("UserToGroup", fields: [teacherId], references: [id])
+  teacherId   String?
+  schedule    Json?
+  students    Student[]
+  attendances Attendance[]
+}
+
+model Student {
+  id          String       @id @default(uuid())
+  fullName    String
+  phone       String
+  status      String       @default("active")
+  group       Group?       @relation(fields: [groupId], references: [id])
+  groupId     String?
+  payments    Payment[]
+  attendances Attendance[]
+  createdAt   DateTime     @default(now())
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  student   Student          @relation(fields: [studentId], references: [id])
+  studentId String
+  group     Group            @relation(fields: [groupId], references: [id])
+  groupId   String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  amount    Float
+  method    String
+  paymentAt DateTime @default(now())
+  comment   String?
+}
